@@ -57,6 +57,84 @@ print(data.get("token"))`;
   "uptime": 3600
 }`;
 
+  const htmlInstallCode = `<!-- Sisipkan token hasil solver ke input form target -->
+<form action="https://target.com/login" method="POST">
+  <input type="text" name="username" value="user@example.com" />
+  <input type="password" name="password" value="rahasia123" />
+
+  <!-- Field wajib Cloudflare Turnstile -->
+  <input type="hidden" name="cf-turnstile-response" value="0.4AAAAAA..." />
+
+  <button type="submit">Kirim Form</button>
+</form>`;
+
+  const nodeFullFlowCode = `// 1. Dapatkan token dari endpoint solver
+const solveRes = await fetch("https://YOUR_RAILWAY_URL/api/turnstile", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sitekey: "0x4AAAAAA...",
+    siteurl: "https://target.com"
+  })
+});
+const { token } = await solveRes.json();
+
+// 2. Kirim request ke backend situs target dengan field cf-turnstile-response
+const targetRes = await fetch("https://target.com/api/submit", {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    username: "user@example.com",
+    password: "secretpassword",
+    "cf-turnstile-response": token // Pasang token di sini
+  })
+});
+
+console.log("Status respons target:", targetRes.status);`;
+
+  const pythonFullFlowCode = `import requests
+
+# 1. Panggil solver untuk memecahkan Turnstile
+solve = requests.post(
+  "https://YOUR_RAILWAY_URL/api/turnstile",
+  json={
+    "sitekey": "0x4AAAAAA...",
+    "siteurl": "https://target.com"
+  }
+).json()
+token = solve.get("token")
+
+# 2. Kirim formulir ke server target beserta token Turnstile
+session = requests.Session()
+response = session.post(
+  "https://target.com/login",
+  data={
+    "username": "user@example.com",
+    "password": "mypassword",
+    "cf-turnstile-response": token # Pasang token di sini
+  }
+)
+
+print("Status respons target:", response.status_code)`;
+
+  const automationCode = `// Automasi Browser (Puppeteer / Playwright)
+// Injeksi token langsung ke elemen form Turnstile dan picu event
+await page.evaluate((solvedToken) => {
+  // Isi input atau textarea tersembunyi
+  const el = document.querySelector('[name="cf-turnstile-response"]') 
+    || document.querySelector('#cf-turnstile-response');
+  if (el) {
+    el.value = solvedToken;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Jika widget memanggil callback onSuccess kustom
+  if (window.onTurnstileSuccess) {
+    window.onTurnstileSuccess(solvedToken);
+  }
+}, token);`;
+
   return (
     <>
       <Navbar />
@@ -168,6 +246,115 @@ print(data.get("token"))`;
                 </tr>
               </tbody>
             </table>
+
+            <h2 id="cp">Cara pasang token</h2>
+            <p>
+              Setelah menerima <code>token</code> dari solver, Anda harus
+              memasukkannya ke dalam parameter request yang dikirim ke server
+              target. Secara standar, Cloudflare Turnstile membaca token dari
+              field <code>cf-turnstile-response</code>.
+            </p>
+
+            <CodeTabs
+              tabs={[
+                {
+                  label: 'Form HTML',
+                  code: htmlInstallCode,
+                  render: (
+                    <>
+                      <span className="c">&lt;!-- Sisipkan token hasil solver ke input form target --&gt;</span>{'\n'}
+                      &lt;<span className="k">form</span> action=<span className="s2">&quot;https://target.com/login&quot;</span> method=<span className="s2">&quot;POST&quot;</span>&gt;{'\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;text&quot;</span> name=<span className="s2">&quot;username&quot;</span> value=<span className="s2">&quot;user@example.com&quot;</span> /&gt;{'\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;password&quot;</span> name=<span className="s2">&quot;password&quot;</span> value=<span className="s2">&quot;rahasia123&quot;</span> /&gt;{'\n\n'}
+                      {'  '}<span className="c">&lt;!-- Field wajib Cloudflare Turnstile --&gt;</span>{'\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;hidden&quot;</span> name=<span className="s2">&quot;cf-turnstile-response&quot;</span> value=<span className="s2">&quot;0.4AAAAAA...&quot;</span> /&gt;{'\n\n'}
+                      {'  '}&lt;<span className="k">button</span> type=<span className="s2">&quot;submit&quot;</span>&gt;Kirim Form&lt;/<span className="k">button</span>&gt;{'\n'}
+                      &lt;/<span className="k">form</span>&gt;
+                    </>
+                  ),
+                },
+                {
+                  label: 'Node (Full Flow)',
+                  code: nodeFullFlowCode,
+                  render: (
+                    <>
+                      <span className="c">// 1. Dapatkan token dari endpoint solver</span>{'\n'}
+                      <span className="k">const</span> solveRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
+                      {'  '}body: JSON.stringify({'{'}{'\n'}
+                      {'    '}sitekey: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
+                      {'    '}siteurl: <span className="s2">&quot;https://target.com&quot;</span>{'\n'}
+                      {'  '}{'}'}){'\n'}
+                      {'}'});{'\n'}
+                      <span className="k">const</span> {'{'} token {'}'} = <span className="k">await</span> solveRes.json();{'\n\n'}
+                      <span className="c">// 2. Kirim request ke backend situs target bersama token</span>{'\n'}
+                      <span className="k">const</span> targetRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://target.com/api/submit&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/x-www-form-urlencoded&quot;</span> {'}'},{'\n'}
+                      {'  '}body: <span className="k">new</span> URLSearchParams({'{'}{'\n'}
+                      {'    '}username: <span className="s2">&quot;user@example.com&quot;</span>,{'\n'}
+                      {'    '}password: <span className="s2">&quot;secretpassword&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c">// Pasang token di sini</span>{'\n'}
+                      {'  '}{'}'}){'\n'}
+                      {'}'});{'\n\n'}
+                      console.log(<span className="s2">&quot;Status respons target:&quot;</span>, targetRes.status);
+                    </>
+                  ),
+                },
+                {
+                  label: 'Python (Full Flow)',
+                  code: pythonFullFlowCode,
+                  render: (
+                    <>
+                      <span className="k">import</span> requests{'\n\n'}
+                      <span className="c"># 1. Panggil solver untuk memecahkan Turnstile</span>{'\n'}
+                      solve = requests.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>,{'\n'}
+                      {'  '}json={'{'}{'\n'}
+                      {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://target.com&quot;</span>{'\n'}
+                      {'  '}{'}'}{'\n'}
+                      ).json(){'\n'}
+                      token = solve.get(<span className="s2">&quot;token&quot;</span>){'\n\n'}
+                      <span className="c"># 2. Kirim formulir ke server target beserta token Turnstile</span>{'\n'}
+                      session = requests.Session(){'\n'}
+                      response = session.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://target.com/login&quot;</span>,{'\n'}
+                      {'  '}data={'{'}{'\n'}
+                      {'    '}<span className="s2">&quot;username&quot;</span>: <span className="s2">&quot;user@example.com&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;password&quot;</span>: <span className="s2">&quot;mypassword&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c"># Pasang token di sini</span>{'\n'}
+                      {'  '}{'}'}{'\n'}
+                      ){'\n\n'}
+                      print(<span className="s2">&quot;Status respons target:&quot;</span>, response.status_code)
+                    </>
+                  ),
+                },
+                {
+                  label: 'Browser Automation',
+                  code: automationCode,
+                  render: (
+                    <>
+                      <span className="c">// Automasi Browser (Puppeteer / Playwright)</span>{'\n'}
+                      <span className="c">// Injeksi token langsung ke DOM dan picu event</span>{'\n'}
+                      <span className="k">await</span> page.evaluate((solvedToken) =&gt; {'{'}{'\n'}
+                      {'  '}<span className="k">const</span> el = document.querySelector(<span className="s2">&apos;[name=&quot;cf-turnstile-response&quot;]&apos;</span>){'\n'}
+                      {'    '}|| document.querySelector(<span className="s2">&apos;#cf-turnstile-response&apos;</span>);{'\n'}
+                      {'  '}<span className="k">if</span> (el) {'{'}{'\n'}
+                      {'    '}el.value = solvedToken;{'\n'}
+                      {'    '}el.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;input&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
+                      {'    '}el.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;change&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
+                      {'  '}{'}'}{'\n\n'}
+                      {'  '}<span className="k">if</span> (window.onTurnstileSuccess) {'{'}{'\n'}
+                      {'    '}window.onTurnstileSuccess(solvedToken);{'\n'}
+                      {'  '}{'}'}{'\n'}
+                      {'}'}, token);
+                    </>
+                  ),
+                },
+              ]}
+            />
 
             <h2 id="ts">/api/turnstile</h2>
             <p>

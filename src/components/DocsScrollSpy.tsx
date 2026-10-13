@@ -21,6 +21,12 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    category: 'Integrasi',
+    items: [
+      { id: 'cp', label: 'Cara pasang token' },
+    ],
+  },
+  {
     category: 'Endpoint',
     items: [
       { id: 'ts', label: '/api/turnstile' },
