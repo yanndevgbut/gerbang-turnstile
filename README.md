@@ -1,96 +1,79 @@
-# Gerbang — Cloudflare Turnstile Solver UI
+# Gerbang — Turnstile Solver & CaptchaX (All-in-One)
 
-Antarmuka web modern untuk solver **Cloudflare Turnstile**, dibangun menggunakan **Next.js (App Router)** dan siap di-deploy ke **Vercel**, terhubung langsung dengan backend **[CaptchaX](https://github.com/ryuhandev/CaptchaX)** yang berjalan di **Railway**.
-
-## Fitur Utama
-
-- **100% Desain Asli**: Animasi SVG gerbang, live latency meter, ticker running-text, kalkulator harga, dan tipografi editorial tetap persis sama.
-- **Tanpa Mock Data**: Widget demo langsung melakukan solve sungguhan via API proxy ke backend Railway.
-- **Dokumentasi Lengkap**: Spesifikasi endpoint `/api/turnstile`, `/api/turnstile-max`, kode snippet (curl, Node.js, Python), dan test keys resmi Cloudflare.
-- **Proxy Anti-CORS**: Route proxy bawaan (`/api/turnstile`, `/api/turnstile-max`, `/api/health`) untuk mengamankan URL backend dan mencegah pemblokiran CORS dari browser.
-- **Vercel Ready**: Bebas konfigurasi rumit, cukup pasang Environment Variable di dashboard Vercel.
+Aplikasi lengkap solver Cloudflare Turnstile & Captcha:
+- **Frontend Modern**: Next.js (App Router), animasi gerbang SVG, live latency chart, kalkulator harga, dan dokumentasi interaktif.
+- **Backend Solver**: Express.js + Puppeteer Real Browser bertenaga CaptchaX (mendukung Turnstile, Turnstile Max, reCAPTCHA v3, Altcha, FriendlyCaptcha, Cloudflare Challenge, dll).
+- **Arsitektur 1 Wadah (Single Container)**: Frontend Next.js di-export statis dan disajikan langsung oleh Express. API dan Web berjalan di satu domain dan satu port yang sama di Railway.
 
 ---
 
-## Variabel Environment
+## Fitur Solver
 
-Salin `.env.example` ke `.env.local`:
-
-```bash
-cp .env.example .env.local
-```
-
-Isi dengan domain publik backend Railway Anda:
-
-```env
-RAILWAY_API_URL=https://your-captchax-backend.up.railway.app
-```
-
----
-
-## Menjalankan Secara Lokal
-
-```bash
-# Menggunakan Bun / NPM / PNPM
-bun install
-bun run dev
-# atau
-npm install
-npm run dev
-```
-
-Buka [http://localhost:3000](http://localhost:3000) pada browser Anda.
+| Proteksi | Endpoint | Keterangan |
+| :--- | :--- | :--- |
+| **Turnstile (Standalone)** | `POST /api/turnstile` | Render mandiri via fake page bermodal `sitekey` & `siteurl` (paling cepat). |
+| **Turnstile (Embedded)** | `POST /api/turnstile-max` | Kunjungi halaman target secara otomatis bermodal `url`. |
+| **Detektor Sitekey** | `POST /api/get-sitekey` | Pindai otomatis jenis captcha & sitekey dari link website target. |
+| **reCAPTCHA v3** | `POST /api/captchav3` | Anchor/reload tanpa browser (ringan). |
+| **Cloudflare WAF** | `POST /api/cloudflare` | Bypass challenge dan ambil `cf_clearance`. |
+| **Altcha PoW** | `POST /api/altcha` | Brute force SHA-1/256/384/512 (murni komputasi). |
+| **FriendlyCaptcha** | `POST /api/friendly` | Solver WASM resmi `friendly-pow`. |
+| **Health Check** | `GET /api/health` | Cek status RAM, CPU, dan antrean browser. |
 
 ---
 
-## Deploy ke Vercel
+## Deploy ke Railway (1-Click via GitHub)
 
-1. Push folder proyek ini ke repository GitHub Anda:
+1. **Push repository ini ke GitHub**:
    ```bash
-   git init
    git add .
-   git commit -m "Initial commit"
-   git remote add origin <URL_REPO_GITHUB>
-   git push -u origin main
+   git commit -m "feat: unified captchax backend and nextjs frontend"
+   git push origin main
    ```
-2. Buka dashboard [Vercel](https://vercel.com/) dan pilih **Add New Project**.
-3. Import repository GitHub tersebut.
-4. Pada bagian **Environment Variables**, tambahkan:
-   - **Key**: `RAILWAY_API_URL`
-   - **Value**: `https://<nama-aplikasi-railway>.up.railway.app`
-5. Klik **Deploy**.
+
+2. **Buat Project di Railway**:
+   - Buka [Railway](https://railway.app/).
+   - Klik **New Project** &rarr; **Deploy from GitHub repo** &rarr; pilih repository `gerbang-turnstile`.
+   - Railway otomatis mendeteksi `Dockerfile` dan `railway.json`.
+
+3. **Pengaturan Variabel (Variables)**:
+   Tambahkan variabel lingkungan di tab **Variables**:
+   - `PORT`: `5000` (atau port default Railway)
+   - `NODE_ENV`: `production`
+   - `MAX_REQUESTS_PER_MINUTE`: `5` (atau sesuai kebutuhan)
+   - `BROWSER_SLOT_WAIT_MS`: `45000`
+
+4. **Public Networking**:
+   - Di tab **Networking**, klik **Generate Domain** (misal: `gerbang-turnstile.up.railway.app`).
+   - Pastikan **Target Port** sama dengan nilai `PORT` (`5000`).
+
+Selesai! Web UI dan semua endpoint `/api/*` langsung aktif di satu domain yang sama.
 
 ---
 
-## Struktur Proyek
+## Menjalankan Secara Lokal (Docker)
+
+```bash
+docker build -t gerbang-turnstile .
+docker run --rm -p 5000:5000 gerbang-turnstile
+```
+Buka `http://localhost:5000` di browser Anda.
+
+---
+
+## Struktur Folder
 
 ```
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── health/route.ts         # Proxy GET /api/health ke Railway
-│   │   │   ├── turnstile/route.ts      # Proxy POST /api/turnstile ke Railway
-│   │   │   └── turnstile-max/route.ts  # Proxy POST /api/turnstile-max ke Railway
-│   │   ├── dokumentasi/
-│   │   │   └── page.tsx                # Halaman dokumentasi API CaptchaX
-│   │   ├── globals.css                 # Sistem tema, animasi keyframes, dan styling murni
-│   │   ├── layout.tsx                  # Font Bricolage Grotesque, Instrument Sans, JetBrains Mono
-│   │   └── page.tsx                    # Landing page dengan demo widget riil
-│   └── components/
-│       ├── CodeTabs.tsx                # Tab curl / Node / Python + tombol salin
-│       ├── CopyableSnippet.tsx         # Blok kode respons JSON responsif
-│       ├── DocsScrollSpy.tsx           # Sticky sidebar scrollspy
-│       ├── FlowDiagram.tsx             # Diagram alur SVG (desktop & mobile)
-│       ├── Footer.tsx                  # Footer konsisten
-│       ├── HeroGate.tsx                # Animasi SVG gerbang Turnstile
-│       ├── LatencyChart.tsx            # Live bar chart latensi
-│       ├── Marquee.tsx                 # Running marquee log penyelesaian
-│       ├── Navbar.tsx                  # Navigasi atas dengan active link
-│       ├── PriceCalculator.tsx         # Slider estimasi biaya
-│       ├── ScrollReveal.tsx            # Observer animasi scroll
-│       └── TurnstileDemo.tsx           # Widget solve turnstile live ke Railway
-├── next.config.mjs
-├── package.json
-├── tsconfig.json
-└── README.md
+├── Dockerfile                  # Base Debian + Chromium + build Next.js
+├── railway.json                # Konfigurasi deploy Railway
+├── next.config.mjs             # Next.js static export (output: 'export')
+├── package.json                # Dependensi gabungan (Next.js + Express + Puppeteer)
+├── assets/                     # Asset fakePage & ilustrasi
+└── src/
+    ├── app/                    # Next.js UI (Halaman beranda & dokumentasi)
+    ├── components/             # Komponen visual (Marquee, Chart, Demo, dll)
+    └── server/                 # Express Server CaptchaX
+        ├── index.js            # Entry point: melayani /api/* dan static files out/
+        ├── routes/             # solve.js, health.js
+        └── services/           # turnstile, browser, cloudflare, kasada, dll.
 ```
