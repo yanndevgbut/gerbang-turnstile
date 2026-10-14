@@ -483,7 +483,7 @@ curl -X GET https://gerbang-turnstile.vercel.app/api/health`;
               headerLabel="contoh respons deteksi · 200"
               code={gsResponse}
             >
-              {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;detected_providers&quot;</span>: [<span className="s2">&quot;turnstile&quot;</span>],{`\n  `}<span className="k">&quot;sitekeys&quot;</span>: [\n    {`\n      `}<span className="k">&quot;type&quot;</span>: <span className="s2">&quot;turnstile&quot;</span>,\n      <span className="k">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAAAJ...&quot;</span>,\n      <span className="k">&quot;solver&quot;</span>: <span className="s2">&quot;/api/turnstile&quot;</span>{`\n    `}}\n  ],{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">4.12</span>{`\n}`}
+              {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;detected_providers&quot;</span>: [<span className="s2">&quot;turnstile&quot;</span>],{`\n  `}<span className="k">&quot;sitekeys&quot;</span>: [{`\n    `}{`{\n      `}<span className="k">&quot;type&quot;</span>: <span className="s2">&quot;turnstile&quot;</span>,{`\n      `}<span className="k">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAAAJ...&quot;</span>,{`\n      `}<span className="k">&quot;solver&quot;</span>: <span className="s2">&quot;/api/turnstile&quot;</span>{`\n    }`}{`\n  `}],{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">4.12</span>{`\n}`}
             </CopyableSnippet>
 
             <h3 style={{ fontSize: '1.2rem', marginTop: '24px' }}>
