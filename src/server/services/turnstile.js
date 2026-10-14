@@ -318,6 +318,14 @@ class BypassService {
 
       const token = await this.browserService.withBrowserContext(async (context) => {
         const page = await context.newPage();
+        await page.setViewport({ width: 1280, height: 800 });
+        await page.setUserAgent(
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+        );
+        await page.evaluateOnNewDocument(() => {
+          Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+          Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
+        });
 
         if (proxy?.username && proxy?.password) {
           await page.authenticate({
@@ -376,6 +384,14 @@ class BypassService {
         const page = await context.newPage();
         await page.setDefaultTimeout(30000);
         await page.setDefaultNavigationTimeout(30000);
+        await page.setViewport({ width: 1280, height: 800 });
+        await page.setUserAgent(
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+        );
+        await page.evaluateOnNewDocument(() => {
+          Object.defineProperty(navigator, 'platform', { get: () => 'Win32' });
+          Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
+        });
 
         if (proxy?.username && proxy?.password) {
           await page.authenticate({

@@ -69,7 +69,7 @@ router.post('/turnstile', async (req, res) => {
       return res.status(429).json({ success: false, error: 'Rate limit exceeded' });
     }
 
-    const { sitekey, siteurl, timeout, action } = req.body;
+    const { sitekey, siteurl, timeout, action, proxy } = req.body;
     
     if (!sitekey) {
       return res.status(400).json({ success: false, error: 'sitekey is required' });
@@ -90,7 +90,7 @@ router.post('/turnstile', async (req, res) => {
     const bypassService = new BypassService(browserService);
     await browserService.initialize();
     
-    const result = await bypassService.solveTurnstileMin(siteurl, sitekey, null, solveTimeout * 1000, { action });
+    const result = await bypassService.solveTurnstileMin(siteurl, sitekey, proxy || null, solveTimeout * 1000, { action });
     
     if (result.success) {
       res.json({ 
