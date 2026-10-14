@@ -16,35 +16,30 @@ const NAV_GROUPS: NavGroup[] = [
   {
     category: 'Mulai',
     items: [
-      { id: 'qs', label: 'Mulai cepat' },
+      { id: 'ringkasan', label: 'Ringkasan' },
       { id: 'tk', label: 'Kunci uji (Test keys)' },
     ],
   },
   {
-    category: 'Integrasi',
+    category: 'Endpoint Solver',
     items: [
-      { id: 'cp', label: 'Cara pasang token' },
-    ],
-  },
-  {
-    category: 'Endpoint',
-    items: [
-      { id: 'ts', label: '/api/turnstile' },
-      { id: 'tm', label: '/api/turnstile-max' },
-      { id: 'gh', label: '/api/health' },
+      { id: 'tm', label: '1. /api/turnstile-max (Otomatis)' },
+      { id: 'gs', label: '2. /api/get-sitekey (Detektor)' },
+      { id: 'ts', label: '3. /api/turnstile (Cepat)' },
+      { id: 'gh', label: '4. /api/health (Status)' },
     ],
   },
   {
     category: 'Referensi',
     items: [
-      { id: 'er', label: 'Kode error' },
-      { id: 'rl', label: 'Batas laju & antrean' },
+      { id: 'er', label: 'Kode status & error' },
+      { id: 'rl', label: 'Antrean & batas kecepatan' },
     ],
   },
 ];
 
 export default function DocsScrollSpy() {
-  const [activeId, setActiveId] = useState('qs');
+  const [activeId, setActiveId] = useState('ringkasan');
 
   useEffect(() => {
     const handleScroll = () => {

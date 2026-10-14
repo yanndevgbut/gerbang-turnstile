@@ -6,134 +6,226 @@ import CopyableSnippet from '@/components/CopyableSnippet';
 import ScrollReveal from '@/components/ScrollReveal';
 
 export default function DokumentasiPage() {
-  const curlCode = `# selesaikan turnstile standalone
-curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \\
+  // 1. TURNSTILE-MAX
+  const tmCurl = `# Cara paling gampang: cukup kirim link website yang mau ditembus
+curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile-max \\
   -H "Content-Type: application/json" \\
-  -d '{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}'`;
+  -d '{"url":"https://target.com/login","timeout":60}'`;
 
-  const nodeCode = `const res = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
+  const tmNode = `// 1. Minta solver selesaikan Turnstile langsung dari URL
+const res = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile-max", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    sitekey: "1x00000000000000000000AA",
-    siteurl: "https://challenges.cloudflare.com",
-    timeout: 45
+    url: "https://target.com/login",
+    timeout: 60
   })
 });
-const data = await res.json();
-console.log(data.token);`;
+const { token } = await res.json();
 
-  const pythonCode = `import requests
-
-res = requests.post(
-  "https://gerbang-turnstile.vercel.app/api/turnstile",
-  json={
-    "sitekey": "1x00000000000000000000AA",
-    "siteurl": "https://challenges.cloudflare.com",
-    "timeout": 45
-  }
-)
-data = res.json()
-print(data.get("token"))`;
-
-  const turnstileResponse = `{
-  "success": true,
-  "token": "0.4AAAAAA7xO9...q8V2",
-  "duration": 1.42
-}`;
-
-  const turnstileMaxResponse = `{
-  "success": true,
-  "token": "0.4AAAAAA8yP1...w9X3",
-  "duration": 5.18
-}`;
-
-  const healthResponse = `{
-  "status": "healthy",
-  "memory": {
-    "rss": "128MB",
-    "heapTotal": "48MB"
-  },
-  "uptime": 3600
-}`;
-
-  const htmlInstallCode = `<!-- Sisipkan token hasil solver ke input form target -->
-<form action="https://target.com/login" method="POST">
-  <input type="text" name="username" value="user@example.com" />
-  <input type="password" name="password" value="rahasia123" />
-
-  <!-- Field wajib Cloudflare Turnstile -->
-  <input type="hidden" name="cf-turnstile-response" value="0.4AAAAAA..." />
-
-  <button type="submit">Kirim Form</button>
-</form>`;
-
-  const nodeFullFlowCode = `// 1. Dapatkan token dari endpoint solver
-const solveRes = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    sitekey: "0x4AAAAAA...",
-    siteurl: "https://target.com"
-  })
-});
-const { token } = await solveRes.json();
-
-// 2. Kirim request ke backend situs target dengan field cf-turnstile-response
-const targetRes = await fetch("https://target.com/api/submit", {
+// 2. Langsung tempelkan token ke form target
+await fetch("https://target.com/login", {
   method: "POST",
   headers: { "Content-Type": "application/x-www-form-urlencoded" },
   body: new URLSearchParams({
     username: "user@example.com",
-    password: "secretpassword",
-    "cf-turnstile-response": token // Pasang token di sini
+    password: "password123",
+    "cf-turnstile-response": token // <-- pasang token di sini
   })
-});
+});`;
 
-console.log("Status respons target:", targetRes.status);`;
+  const tmPython = `import requests
 
-  const pythonFullFlowCode = `import requests
-
-# 1. Panggil solver untuk memecahkan Turnstile
+# 1. Panggil solver cukup dengan link website target
 solve = requests.post(
-  "https://gerbang-turnstile.vercel.app/api/turnstile",
-  json={
-    "sitekey": "0x4AAAAAA...",
-    "siteurl": "https://target.com"
-  }
+  "https://gerbang-turnstile.vercel.app/api/turnstile-max",
+  json={"url": "https://target.com/login", "timeout": 60}
 ).json()
 token = solve.get("token")
 
-# 2. Kirim formulir ke server target beserta token Turnstile
+# 2. Kirim form login ke target bersama token yang didapat
 session = requests.Session()
 response = session.post(
   "https://target.com/login",
   data={
     "username": "user@example.com",
-    "password": "mypassword",
-    "cf-turnstile-response": token # Pasang token di sini
+    "password": "password123",
+    "cf-turnstile-response": token  # <-- pasang token di sini
   }
 )
+print("Berhasil login:", response.status_code)`;
 
-print("Status respons target:", response.status_code)`;
-
-  const automationCode = `// Automasi Browser (Puppeteer / Playwright)
-// Injeksi token langsung ke elemen form Turnstile dan picu event
-await page.evaluate((solvedToken) => {
-  // Isi input atau textarea tersembunyi
-  const el = document.querySelector('[name="cf-turnstile-response"]') 
-    || document.querySelector('#cf-turnstile-response');
-  if (el) {
-    el.value = solvedToken;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
+  const tmAutomation = `// Automasi Browser (Puppeteer / Playwright)
+// Setelah dapat token dari /api/turnstile-max, pasang langsung ke halaman browser:
+await page.evaluate((token) => {
+  const input = document.querySelector('[name="cf-turnstile-response"]');
+  if (input) {
+    input.value = token;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
   }
+}, token);
 
-  // Jika widget memanggil callback onSuccess kustom
-  if (window.onTurnstileSuccess) {
-    window.onTurnstileSuccess(solvedToken);
+// Lanjut klik tombol submit di web target
+await page.click('#tombol-login');`;
+
+  const tmResponse = `{
+  "success": true,
+  "token": "0.4AAAAAA8yP1...w9X3",
+  "duration": 5.18
+}`;
+
+  // 2. GET-SITEKEY
+  const gsCurl = `# Deteksi otomatis sitekey & captcha dari sebuah halaman web
+curl -X POST https://gerbang-turnstile.vercel.app/api/get-sitekey \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://target.com/login","timeout":30}'`;
+
+  const gsNode = `// 1. Scan website target untuk dapatkan sitekey secara otomatis
+const scanRes = await fetch("https://gerbang-turnstile.vercel.app/api/get-sitekey", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ url: "https://target.com/login", timeout: 30 })
+});
+const scan = await scanRes.json();
+const sitekey = scan.sitekeys[0]?.sitekey; // otomatis dapat '0x4AAAAAA...'
+
+// 2. Selesaikan Turnstile dengan sitekey hasil deteksi (lebih cepat)
+const solveRes = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sitekey: sitekey,
+    siteurl: "https://target.com/login"
+  })
+});
+const { token } = await solveRes.json();
+
+// 3. Gunakan token untuk request form target
+console.log("Token siap dipakai:", token);`;
+
+  const gsPython = `import requests
+
+# 1. Scan website untuk deteksi otomatis sitekey
+scan = requests.post(
+  "https://gerbang-turnstile.vercel.app/api/get-sitekey",
+  json={"url": "https://target.com/login", "timeout": 30}
+).json()
+
+sitekey = scan["sitekeys"][0]["sitekey"]
+print("Sitekey ditemukan:", sitekey)
+
+# 2. Lempar sitekey ke solver cepat
+solve = requests.post(
+  "https://gerbang-turnstile.vercel.app/api/turnstile",
+  json={"sitekey": sitekey, "siteurl": "https://target.com/login"}
+).json()
+
+token = solve.get("token")
+print("Token siap dipakai:", token)`;
+
+  const gsResponse = `{
+  "success": true,
+  "url": "https://target.com/login",
+  "detected_providers": ["turnstile"],
+  "sitekeys": [
+    {
+      "type": "turnstile",
+      "label": "Cloudflare Turnstile",
+      "sitekey": "0x4AAAAAAAJ...",
+      "solver": "/api/turnstile",
+      "solver_param": "sitekey"
+    }
+  ],
+  "total_keys_found": 1,
+  "duration": 4.12
+}`;
+
+  // 3. TURNSTILE (Cepat)
+  const tsCurl = `# Mode cepat: jika kamu sudah tahu sitekey widget target
+curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \\
+  -H "Content-Type: application/json" \\
+  -d '{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}'`;
+
+  const tsHtmlForm = `<!-- Cara pasang di Form HTML: -->
+<!-- Cloudflare Turnstile selalu memeriksa input dengan nama "cf-turnstile-response" -->
+<form action="https://target.com/login" method="POST">
+  <input type="text" name="email" value="user@mail.com" />
+  <input type="password" name="password" value="rahasia" />
+
+  <!-- Masukkan token yang didapat dari solver ke sini -->
+  <input type="hidden" name="cf-turnstile-response" value="0.4AAAAAA..." />
+
+  <button type="submit">Masuk</button>
+</form>`;
+
+  const tsNode = `// 1. Minta token ke solver cepat
+const res = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sitekey: "0x4AAAAAA...",
+    siteurl: "https://target.com/login",
+    timeout: 45
+  })
+});
+const { token } = await res.json();
+
+// 2. Pasang token ke request tujuan
+await fetch("https://target.com/api/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "user@mail.com",
+    password: "password123",
+    "cf-turnstile-response": token // <-- pasang di sini
+  })
+});`;
+
+  const tsPython = `import requests
+
+# 1. Dapatkan token dari solver
+solve = requests.post(
+  "https://gerbang-turnstile.vercel.app/api/turnstile",
+  json={
+    "sitekey": "0x4AAAAAA...",
+    "siteurl": "https://target.com/login",
+    "timeout": 45
   }
-}, token);`;
+).json()
+token = solve.get("token")
+
+# 2. Pasang token ke data form login target
+res = requests.post(
+  "https://target.com/login",
+  data={
+    "email": "user@mail.com",
+    "password": "mypassword",
+    "cf-turnstile-response": token  # <-- pasang di sini
+  }
+)
+print("Status login:", res.status_code)`;
+
+  const tsResponse = `{
+  "success": true,
+  "token": "0.4AAAAAA7xO9...q8V2",
+  "duration": 1.42
+}`;
+
+  // 4. HEALTH
+  const healthCurl = `# Cek apakah backend solver siap menerima antrean
+curl -X GET https://gerbang-turnstile.vercel.app/api/health`;
+
+  const healthResponse = `{
+  "status": "healthy",
+  "railwayConnected": true,
+  "backendStatus": 200,
+  "backendData": {
+    "status": "ok",
+    "service": "turnstile-solver-js",
+    "ram": { "used": "238MB", "free": "133MB" }
+  }
+}`;
 
   return (
     <>
@@ -144,227 +236,338 @@ await page.evaluate((solvedToken) => {
           <article className="doc">
             <div className="live">
               <i className="dot" />
-              API v1 · semua sistem normal · CaptchaX Engine
+              API v1 · Semua sistem normal · CaptchaX Engine
             </div>
+
             <h1 style={{ marginTop: '14px' }}>Dokumentasi API Solver</h1>
             <p>
-              Selesaikan tantangan Cloudflare Turnstile melalui REST API yang
-              terhubung langsung ke instance CaptchaX Railway Anda.
+              Panduan lengkap dan praktis untuk menyelesaikan tantangan Cloudflare
+              Turnstile. Cukup panggil API, ambil tokennya, dan pasang langsung
+              ke form atau skrip bot Anda.
             </p>
 
-            <h2 id="qs">Mulai cepat</h2>
-            <p>
-              Kirim permintaan dengan <code>sitekey</code> dan{' '}
-              <code>siteurl</code> halaman target. Solver akan memecahkan widget
-              dan mengembalikan <code>token</code> valid.
-            </p>
+            <h2 id="ringkasan">Cara Kerja Singkat</h2>
+            <p>Ada 3 cara yang bisa kamu pilih sesuai kebutuhan:</p>
+            <ol style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
+              <li>
+                <b>Paling mudah (Otomatis)</b>: Pakai{' '}
+                <code>/api/turnstile-max</code>. Cukup kirim URL halaman web,
+                solver akan membuka halaman dan mengklik widget sendiri.
+              </li>
+              <li>
+                <b>Deteksi otomatis</b>: Pakai <code>/api/get-sitekey</code> untuk
+                mencari tahu nilai <code>sitekey</code> di halaman target tanpa
+                perlu inspect element manual.
+              </li>
+              <li>
+                <b>Paling cepat & hemat resource</b>: Pakai{' '}
+                <code>/api/turnstile</code> jika kamu sudah tahu nilai sitekey-nya.
+              </li>
+            </ol>
 
-            <CodeTabs
-              tabs={[
-                {
-                  label: 'curl',
-                  code: curlCode,
-                  render: (
-                    <>
-                      <span className="c"># selesaikan turnstile standalone</span>
-                      <br />
-                      curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \{'\n'}
-                      {'  '}-H <span className="s2">&quot;Content-Type: application/json&quot;</span> \{'\n'}
-                      {'  '}-d <span className="s2">&apos;{`{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}`}</span>&apos;
-                    </>
-                  ),
-                },
-                {
-                  label: 'Node',
-                  code: nodeCode,
-                  render: (
-                    <>
-                      <span className="k">const</span> res = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
-                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
-                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
-                      {'  '}body: JSON.stringify({'{'}{'\n'}
-                      {'    '}sitekey: <span className="s2">&quot;1x00000000000000000000AA&quot;</span>,{'\n'}
-                      {'    '}siteurl: <span className="s2">&quot;https://challenges.cloudflare.com&quot;</span>,{'\n'}
-                      {'    '}timeout: 45{'\n'}
-                      {'  '}{'}'}){'\n'}
-                      {'}'});{'\n'}
-                      <span className="k">const</span> data = <span className="k">await</span> res.json();{'\n'}
-                      console.log(data.token);
-                    </>
-                  ),
-                },
-                {
-                  label: 'Python',
-                  code: pythonCode,
-                  render: (
-                    <>
-                      <span className="k">import</span> requests{'\n\n'}
-                      res = requests.post({'\n'}
-                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
-                      {'  '}json={'{'}{'\n'}
-                      {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;1x00000000000000000000AA&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://challenges.cloudflare.com&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;timeout&quot;</span>: 45{'\n'}
-                      {'  '}{'}'}{'\n'}
-                      ){'\n'}
-                      data = res.json(){'\n'}
-                      print(data.get(<span className="s2">&quot;token&quot;</span>))
-                    </>
-                  ),
-                },
-              ]}
-            />
-
-            <h2 id="tk">Kunci uji (Test keys)</h2>
+            <h2 id="tk">Kunci Uji Resmi (Test Keys)</h2>
             <p>
-              Cloudflare menyediakan test sitekeys resmi untuk memverifikasi
-              solver tanpa batas limit:
+              Gunakan kunci resmi dari Cloudflare ini untuk mengetes integrasi
+              tanpa takut diblokir:
             </p>
             <table className="tbl">
               <thead>
                 <tr>
                   <th>Sitekey</th>
                   <th>Perilaku</th>
-                  <th>Hasil</th>
+                  <th>Hasil Pengujian</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>1x00000000000000000000AA</code></td>
-                  <td>Selalu lolos (Always passes)</td>
-                  <td>Mengembalikan token dummy cepat</td>
+                  <td>
+                    <code>1x00000000000000000000AA</code>
+                  </td>
+                  <td>Selalu lolos (Pass)</td>
+                  <td>Mengembalikan token dummy instan</td>
                 </tr>
                 <tr>
-                  <td><code>2x00000000000000000000AB</code></td>
-                  <td>Selalu blokir (Always blocks)</td>
-                  <td>Menolak verifikasi</td>
+                  <td>
+                    <code>2x00000000000000000000AB</code>
+                  </td>
+                  <td>Selalu gagal (Block)</td>
+                  <td>Menolak verifikasi tantangan</td>
                 </tr>
                 <tr>
-                  <td><code>3x00000000000000000000FF</code></td>
-                  <td>Interactive challenge</td>
+                  <td>
+                    <code>3x00000000000000000000FF</code>
+                  </td>
+                  <td>Interactive Challenge</td>
                   <td>Memicu puzzle interaktif</td>
                 </tr>
               </tbody>
             </table>
 
-            <h2 id="cp">Cara pasang token</h2>
+            {/* ENDPOINT 1 */}
+            <h2 id="tm">1. Selesaikan Otomatis dari URL Target</h2>
             <p>
-              Setelah menerima <code>token</code> dari solver, Anda harus
-              memasukkannya ke dalam parameter request yang dikirim ke server
-              target. Secara standar, Cloudflare Turnstile membaca token dari
-              field <code>cf-turnstile-response</code>.
+              <span className="m p">POST</span>
+              <code>/api/turnstile-max</code>
+            </p>
+            <p>
+              <b>Kapan pakai ini?</b> Saat kamu tidak tahu nilai <code>sitekey</code>-nya
+              atau Turnstile tersembunyi di dalam form. Solver akan langsung
+              membuka URL yang kamu berikan, memuat halaman asli, dan memecahkan
+              widget secara otomatis.
+            </p>
+
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Tipe</th>
+                  <th>Wajib</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>url</code></td>
+                  <td>string</td>
+                  <td>Ya</td>
+                  <td>Alamat website target yang memuat Turnstile</td>
+                </tr>
+                <tr>
+                  <td><code>timeout</code></td>
+                  <td>number</td>
+                  <td>Tidak</td>
+                  <td>Batas waktu tunggu dalam detik (default: 60)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <CopyableSnippet
+              headerLabel="contoh respons sukses · 200"
+              code={tmResponse}
+            >
+              {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;token&quot;</span>: <span className="s2">&quot;0.4AAAAAA8yP1...w9X3&quot;</span>,{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">5.18</span>{`\n}`}
+            </CopyableSnippet>
+
+            <h3 style={{ fontSize: '1.2rem', marginTop: '24px' }}>
+              Kode Panggil &amp; Cara Pasang Tokennya:
+            </h3>
+            <p>
+              Pilih bahasa yang kamu pakai. Skrip di bawah langsung mengambil
+              token dan menempelkannya ke form target:
             </p>
 
             <CodeTabs
               tabs={[
                 {
-                  label: 'Form HTML',
-                  code: htmlInstallCode,
+                  label: 'cURL',
+                  code: tmCurl,
                   render: (
                     <>
-                      <span className="c">&lt;!-- Sisipkan token hasil solver ke input form target --&gt;</span>{'\n'}
-                      &lt;<span className="k">form</span> action=<span className="s2">&quot;https://target.com/login&quot;</span> method=<span className="s2">&quot;POST&quot;</span>&gt;{'\n'}
-                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;text&quot;</span> name=<span className="s2">&quot;username&quot;</span> value=<span className="s2">&quot;user@example.com&quot;</span> /&gt;{'\n'}
-                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;password&quot;</span> name=<span className="s2">&quot;password&quot;</span> value=<span className="s2">&quot;rahasia123&quot;</span> /&gt;{'\n\n'}
-                      {'  '}<span className="c">&lt;!-- Field wajib Cloudflare Turnstile --&gt;</span>{'\n'}
-                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;hidden&quot;</span> name=<span className="s2">&quot;cf-turnstile-response&quot;</span> value=<span className="s2">&quot;0.4AAAAAA...&quot;</span> /&gt;{'\n\n'}
-                      {'  '}&lt;<span className="k">button</span> type=<span className="s2">&quot;submit&quot;</span>&gt;Kirim Form&lt;/<span className="k">button</span>&gt;{'\n'}
-                      &lt;/<span className="k">form</span>&gt;
+                      <span className="c"># Cukup kirim URL halaman target</span>{'\n'}
+                      curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile-max \{'\n'}
+                      {'  '}-H <span className="s2">&quot;Content-Type: application/json&quot;</span> \{'\n'}
+                      {'  '}-d <span className="s2">&apos;{`{"url":"https://target.com/login","timeout":60}`}</span>&apos;
                     </>
                   ),
                 },
                 {
-                  label: 'Node (Full Flow)',
-                  code: nodeFullFlowCode,
+                  label: 'Node.js (Full Flow)',
+                  code: tmNode,
                   render: (
                     <>
-                      <span className="c">// 1. Dapatkan token dari endpoint solver</span>{'\n'}
-                      <span className="k">const</span> solveRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      <span className="c">// 1. Ambil token dari solver via URL</span>{'\n'}
+                      <span className="k">const</span> res = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile-max&quot;</span>, {'{'}{'\n'}
                       {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
                       {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
-                      {'  '}body: JSON.stringify({'{'}{'\n'}
-                      {'    '}sitekey: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
-                      {'    '}siteurl: <span className="s2">&quot;https://target.com&quot;</span>{'\n'}
-                      {'  '}{'}'}){'\n'}
+                      {'  '}body: JSON.stringify({'{'} url: <span className="s2">&quot;https://target.com/login&quot;</span>, timeout: 60 {'}'}){'\n'}
                       {'}'});{'\n'}
-                      <span className="k">const</span> {'{'} token {'}'} = <span className="k">await</span> solveRes.json();{'\n\n'}
-                      <span className="c">// 2. Kirim request ke backend situs target bersama token</span>{'\n'}
-                      <span className="k">const</span> targetRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://target.com/api/submit&quot;</span>, {'{'}{'\n'}
+                      <span className="k">const</span> {'{'} token {'}'} = <span className="k">await</span> res.json();{'\n\n'}
+                      <span className="c">// 2. Pasang token ke form request target</span>{'\n'}
+                      <span className="k">await</span> fetch(<span className="s2">&quot;https://target.com/login&quot;</span>, {'{'}{'\n'}
                       {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
                       {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/x-www-form-urlencoded&quot;</span> {'}'},{'\n'}
                       {'  '}body: <span className="k">new</span> URLSearchParams({'{'}{'\n'}
                       {'    '}username: <span className="s2">&quot;user@example.com&quot;</span>,{'\n'}
-                      {'    '}password: <span className="s2">&quot;secretpassword&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c">// Pasang token di sini</span>{'\n'}
+                      {'    '}password: <span className="s2">&quot;password123&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c">// &lt;-- pasang di sini</span>{'\n'}
                       {'  '}{'}'}){'\n'}
-                      {'}'});{'\n\n'}
-                      console.log(<span className="s2">&quot;Status respons target:&quot;</span>, targetRes.status);
+                      {'}'});
                     </>
                   ),
                 },
                 {
                   label: 'Python (Full Flow)',
-                  code: pythonFullFlowCode,
+                  code: tmPython,
                   render: (
                     <>
                       <span className="k">import</span> requests{'\n\n'}
-                      <span className="c"># 1. Panggil solver untuk memecahkan Turnstile</span>{'\n'}
+                      <span className="c"># 1. Panggil solver cukup dengan URL</span>{'\n'}
                       solve = requests.post({'\n'}
-                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
-                      {'  '}json={'{'}{'\n'}
-                      {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://target.com&quot;</span>{'\n'}
-                      {'  '}{'}'}{'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile-max&quot;</span>,{'\n'}
+                      {'  '}json={'{'}<span className="s2">&quot;url&quot;</span>: <span className="s2">&quot;https://target.com/login&quot;</span>, <span className="s2">&quot;timeout&quot;</span>: 60{'}'}{'\n'}
                       ).json(){'\n'}
                       token = solve.get(<span className="s2">&quot;token&quot;</span>){'\n\n'}
-                      <span className="c"># 2. Kirim formulir ke server target beserta token Turnstile</span>{'\n'}
+                      <span className="c"># 2. Kirim form login bersama token</span>{'\n'}
                       session = requests.Session(){'\n'}
                       response = session.post({'\n'}
                       {'  '}<span className="s2">&quot;https://target.com/login&quot;</span>,{'\n'}
                       {'  '}data={'{'}{'\n'}
                       {'    '}<span className="s2">&quot;username&quot;</span>: <span className="s2">&quot;user@example.com&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;password&quot;</span>: <span className="s2">&quot;mypassword&quot;</span>,{'\n'}
-                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c"># Pasang token di sini</span>{'\n'}
+                      {'    '}<span className="s2">&quot;password&quot;</span>: <span className="s2">&quot;password123&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token  <span className="c"># &lt;-- pasang di sini</span>{'\n'}
                       {'  '}{'}'}{'\n'}
-                      ){'\n\n'}
-                      print(<span className="s2">&quot;Status respons target:&quot;</span>, response.status_code)
+                      ){'\n'}
+                      print(<span className="s2">&quot;Status:&quot;</span>, response.status_code)
                     </>
                   ),
                 },
                 {
-                  label: 'Browser Automation',
-                  code: automationCode,
+                  label: 'Puppeteer / Playwright',
+                  code: tmAutomation,
                   render: (
                     <>
-                      <span className="c">// Automasi Browser (Puppeteer / Playwright)</span>{'\n'}
-                      <span className="c">// Injeksi token langsung ke DOM dan picu event</span>{'\n'}
-                      <span className="k">await</span> page.evaluate((solvedToken) =&gt; {'{'}{'\n'}
-                      {'  '}<span className="k">const</span> el = document.querySelector(<span className="s2">&apos;[name=&quot;cf-turnstile-response&quot;]&apos;</span>){'\n'}
-                      {'    '}|| document.querySelector(<span className="s2">&apos;#cf-turnstile-response&apos;</span>);{'\n'}
-                      {'  '}<span className="k">if</span> (el) {'{'}{'\n'}
-                      {'    '}el.value = solvedToken;{'\n'}
-                      {'    '}el.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;input&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
-                      {'    '}el.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;change&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
-                      {'  '}{'}'}{'\n\n'}
-                      {'  '}<span className="k">if</span> (window.onTurnstileSuccess) {'{'}{'\n'}
-                      {'    '}window.onTurnstileSuccess(solvedToken);{'\n'}
+                      <span className="c">// Automasi browser: suntik token ke form dan klik submit</span>{'\n'}
+                      <span className="k">await</span> page.evaluate((token) =&gt; {'{'}{'\n'}
+                      {'  '}<span className="k">const</span> input = document.querySelector(<span className="s2">&apos;[name=&quot;cf-turnstile-response&quot;]&apos;</span>);{'\n'}
+                      {'  '}<span className="k">if</span> (input) {'{'}{'\n'}
+                      {'    '}input.value = token;{'\n'}
+                      {'    '}input.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;input&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
+                      {'    '}input.dispatchEvent(<span className="k">new</span> Event(<span className="s2">&apos;change&apos;</span>, {'{'} bubbles: <span className="k">true</span> {'}'}));{'\n'}
                       {'  '}{'}'}{'\n'}
-                      {'}'}, token);
+                      {'}'}, token);{'\n\n'}
+                      <span className="k">await</span> page.click(<span className="s2">&apos;#tombol-login&apos;</span>);
                     </>
                   ),
                 },
               ]}
             />
 
-            <h2 id="ts">/api/turnstile</h2>
+            {/* ENDPOINT 2 */}
+            <h2 id="gs">2. Deteksi Otomatis Sitekey dari URL</h2>
+            <p>
+              <span className="m p">POST</span>
+              <code>/api/get-sitekey</code>
+            </p>
+            <p>
+              <b>Kapan pakai ini?</b> Saat kamu ingin mengetahui jenis captcha dan
+              mengambil nilai <code>sitekey</code> secara otomatis dari website
+              target tanpa perlu membuka DevTools / inspect element secara manual.
+            </p>
+
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Tipe</th>
+                  <th>Wajib</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>url</code></td>
+                  <td>string</td>
+                  <td>Ya</td>
+                  <td>Alamat website yang ingin dipindai (discan)</td>
+                </tr>
+                <tr>
+                  <td><code>timeout</code></td>
+                  <td>number</td>
+                  <td>Tidak</td>
+                  <td>Waktu maksimal pemindaian detik (default: 30)</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <CopyableSnippet
+              headerLabel="contoh respons deteksi · 200"
+              code={gsResponse}
+            >
+              {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;detected_providers&quot;</span>: [<span className="s2">&quot;turnstile&quot;</span>],{`\n  `}<span className="k">&quot;sitekeys&quot;</span>: [\n    {`\n      `}<span className="k">&quot;type&quot;</span>: <span className="s2">&quot;turnstile&quot;</span>,\n      <span className="k">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAAAJ...&quot;</span>,\n      <span className="k">&quot;solver&quot;</span>: <span className="s2">&quot;/api/turnstile&quot;</span>{`\n    `}}\n  ],{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">4.12</span>{`\n}`}
+            </CopyableSnippet>
+
+            <h3 style={{ fontSize: '1.2rem', marginTop: '24px' }}>
+              Alur Otomatis: Scan Dulu &rarr; Lalu Solve Cepat
+            </h3>
+            <p>
+              Gabungkan endpoint ini dengan solver cepat agar bot kamu bisa
+              berjalan 100% otomatis di situs apa pun:
+            </p>
+
+            <CodeTabs
+              tabs={[
+                {
+                  label: 'cURL',
+                  code: gsCurl,
+                  render: (
+                    <>
+                      <span className="c"># Deteksi sitekey otomatis dari link web</span>{'\n'}
+                      curl -X POST https://gerbang-turnstile.vercel.app/api/get-sitekey \{'\n'}
+                      {'  '}-H <span className="s2">&quot;Content-Type: application/json&quot;</span> \{'\n'}
+                      {'  '}-d <span className="s2">&apos;{`{"url":"https://target.com/login","timeout":30}`}</span>&apos;
+                    </>
+                  ),
+                },
+                {
+                  label: 'Node.js',
+                  code: gsNode,
+                  render: (
+                    <>
+                      <span className="c">// 1. Scan dan dapatkan sitekey otomatis</span>{'\n'}
+                      <span className="k">const</span> scanRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/get-sitekey&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
+                      {'  '}body: JSON.stringify({'{'} url: <span className="s2">&quot;https://target.com/login&quot;</span> {'}'}){'\n'}
+                      {'}'});{'\n'}
+                      <span className="k">const</span> scan = <span className="k">await</span> scanRes.json();{'\n'}
+                      <span className="k">const</span> sitekey = scan.sitekeys[0]?.sitekey;{'\n\n'}
+                      <span className="c">// 2. Lempar ke solver cepat</span>{'\n'}
+                      <span className="k">const</span> solveRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
+                      {'  '}body: JSON.stringify({'{'} sitekey, siteurl: <span className="s2">&quot;https://target.com/login&quot;</span> {'}'}){'\n'}
+                      {'}'});{'\n'}
+                      <span className="k">const</span> {'{'} token {'}'} = <span className="k">await</span> solveRes.json();
+                    </>
+                  ),
+                },
+                {
+                  label: 'Python',
+                  code: gsPython,
+                  render: (
+                    <>
+                      <span className="k">import</span> requests{'\n\n'}
+                      <span className="c"># 1. Scan website</span>{'\n'}
+                      scan = requests.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/get-sitekey&quot;</span>,{'\n'}
+                      {'  '}json={'{'}<span className="s2">&quot;url&quot;</span>: <span className="s2">&quot;https://target.com/login&quot;</span>{'}'}{'\n'}
+                      ).json(){'\n'}
+                      sitekey = scan[<span className="s2">&quot;sitekeys&quot;</span>][0][<span className="s2">&quot;sitekey&quot;</span>]{'\n\n'}
+                      <span className="c"># 2. Selesaikan dengan sitekey tersebut</span>{'\n'}
+                      solve = requests.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
+                      {'  '}json={'{'}<span className="s2">&quot;sitekey&quot;</span>: sitekey, <span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://target.com/login&quot;</span>{'}'}{'\n'}
+                      ).json(){'\n'}
+                      token = solve.get(<span className="s2">&quot;token&quot;</span>)
+                    </>
+                  ),
+                },
+              ]}
+            />
+
+            {/* ENDPOINT 3 */}
+            <h2 id="ts">3. Selesaikan Cepat (Sudah Tahu Sitekey)</h2>
             <p>
               <span className="m p">POST</span>
               <code>/api/turnstile</code>
             </p>
             <p>
-              Menyelesaikan Turnstile mandiri via render fake page. Mode paling
-              cepat dan efisien.
+              <b>Kapan pakai ini?</b> Jika kamu sudah memegang nilai <code>sitekey</code>{' '}
+              (misalnya <code>0x4AAAAAA...</code>). Ini adalah metode <b>paling cepat</b>{' '}
+              (rata-rata 1-2 detik) karena solver langsung merender widget tanpa
+              perlu membuka website target terlebih dahulu.
             </p>
+
             <table className="tbl">
               <thead>
                 <tr>
@@ -385,136 +588,203 @@ await page.evaluate((solvedToken) => {
                   <td><code>siteurl</code></td>
                   <td>string</td>
                   <td>Ya</td>
-                  <td>URL halaman tempat widget Turnstile dipasang</td>
+                  <td>Alamat domain / URL halaman tempat widget terpasang</td>
                 </tr>
                 <tr>
                   <td><code>timeout</code></td>
-                  <td>int</td>
+                  <td>number</td>
                   <td>Tidak</td>
-                  <td>Batas waktu tunggu dalam detik (default: 45)</td>
+                  <td>Batas waktu tunggu detik (default: 45)</td>
                 </tr>
                 <tr>
                   <td><code>action</code></td>
                   <td>string</td>
                   <td>Tidak</td>
-                  <td>Parameter custom action Turnstile (misal: <code>login</code>)</td>
+                  <td>Nama action kustom bila situs target memakainya (mis: <code>login</code>)</td>
                 </tr>
               </tbody>
             </table>
 
             <CopyableSnippet
-              headerLabel="respons · 200 OK"
-              code={turnstileResponse}
+              headerLabel="contoh respons sukses · 200"
+              code={tsResponse}
             >
               {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;token&quot;</span>: <span className="s2">&quot;0.4AAAAAA7xO9...q8V2&quot;</span>,{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">1.42</span>{`\n}`}
             </CopyableSnippet>
 
-            <h2 id="tm">/api/turnstile-max</h2>
-            <p>
-              <span className="m p">POST</span>
-              <code>/api/turnstile-max</code>
-            </p>
-            <p>
-              Menyelesaikan Turnstile yang tertanam langsung di halaman asli
-              target. Browser mengunjungi URL target dan mengklik widget bila
-              diperlukan.
-            </p>
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Parameter</th>
-                  <th>Tipe</th>
-                  <th>Wajib</th>
-                  <th>Keterangan</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>url</code></td>
-                  <td>string</td>
-                  <td>Ya</td>
-                  <td>URL lengkap halaman asli yang memuat Turnstile</td>
-                </tr>
-                <tr>
-                  <td><code>timeout</code></td>
-                  <td>int</td>
-                  <td>Tidak</td>
-                  <td>Batas waktu tunggu dalam detik (default: 60)</td>
-                </tr>
-              </tbody>
-            </table>
+            <h3 style={{ fontSize: '1.2rem', marginTop: '24px' }}>
+              Kode Panggil &amp; Cara Pasang Token:
+            </h3>
 
-            <CopyableSnippet
-              headerLabel="respons · 200 OK"
-              code={turnstileMaxResponse}
-            >
-              {`{\n  `}<span className="k">&quot;success&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;token&quot;</span>: <span className="s2">&quot;0.4AAAAAA8yP1...w9X3&quot;</span>,{`\n  `}<span className="k">&quot;duration&quot;</span>: <span className="s2">5.18</span>{`\n}`}
-            </CopyableSnippet>
+            <CodeTabs
+              tabs={[
+                {
+                  label: 'Form HTML',
+                  code: tsHtmlForm,
+                  render: (
+                    <>
+                      <span className="c">&lt;!-- Masukkan token ke input hidden "cf-turnstile-response" --&gt;</span>{'\n'}
+                      &lt;<span className="k">form</span> action=<span className="s2">&quot;https://target.com/login&quot;</span> method=<span className="s2">&quot;POST&quot;</span>&gt;{'\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;text&quot;</span> name=<span className="s2">&quot;email&quot;</span> value=<span className="s2">&quot;user@mail.com&quot;</span> /&gt;{'\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;password&quot;</span> name=<span className="s2">&quot;password&quot;</span> value=<span className="s2">&quot;rahasia&quot;</span> /&gt;{'\n\n'}
+                      {'  '}&lt;<span className="k">input</span> type=<span className="s2">&quot;hidden&quot;</span> name=<span className="s2">&quot;cf-turnstile-response&quot;</span> value=<span className="s2">&quot;0.4AAAAAA...&quot;</span> /&gt;{'\n\n'}
+                      {'  '}&lt;<span className="k">button</span> type=<span className="s2">&quot;submit&quot;</span>&gt;Masuk&lt;/<span className="k">button</span>&gt;{'\n'}
+                      &lt;/<span className="k">form</span>&gt;
+                    </>
+                  ),
+                },
+                {
+                  label: 'Node.js',
+                  code: tsNode,
+                  render: (
+                    <>
+                      <span className="c">// 1. Dapatkan token</span>{'\n'}
+                      <span className="k">const</span> res = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
+                      {'  '}body: JSON.stringify({'{'}{'\n'}
+                      {'    '}sitekey: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
+                      {'    '}siteurl: <span className="s2">&quot;https://target.com/login&quot;</span>{'\n'}
+                      {'  '}{'}'}){'\n'}
+                      {'}'});{'\n'}
+                      <span className="k">const</span> {'{'} token {'}'} = <span className="k">await</span> res.json();{'\n\n'}
+                      <span className="c">// 2. Kirim ke API login target</span>{'\n'}
+                      <span className="k">await</span> fetch(<span className="s2">&quot;https://target.com/api/login&quot;</span>, {'{'}{'\n'}
+                      {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
+                      {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
+                      {'  '}body: JSON.stringify({'{'}{'\n'}
+                      {'    '}email: <span className="s2">&quot;user@mail.com&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token <span className="c">// &lt;-- pasang di sini</span>{'\n'}
+                      {'  '}{'}'}){'\n'}
+                      {'}'});
+                    </>
+                  ),
+                },
+                {
+                  label: 'Python',
+                  code: tsPython,
+                  render: (
+                    <>
+                      <span className="k">import</span> requests{'\n\n'}
+                      <span className="c"># 1. Dapatkan token solver</span>{'\n'}
+                      solve = requests.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
+                      {'  '}json={'{'}{'\n'}
+                      {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://target.com/login&quot;</span>{'\n'}
+                      {'  '}{'}'}{'\n'}
+                      ).json(){'\n'}
+                      token = solve.get(<span className="s2">&quot;token&quot;</span>){'\n\n'}
+                      <span className="c"># 2. Kirim login bersama token</span>{'\n'}
+                      res = requests.post({'\n'}
+                      {'  '}<span className="s2">&quot;https://target.com/login&quot;</span>,{'\n'}
+                      {'  '}data={'{'}{'\n'}
+                      {'    '}<span className="s2">&quot;email&quot;</span>: <span className="s2">&quot;user@mail.com&quot;</span>,{'\n'}
+                      {'    '}<span className="s2">&quot;cf-turnstile-response&quot;</span>: token  <span className="c"># &lt;-- pasang di sini</span>{'\n'}
+                      {'  '}{'}'}{'\n'}
+                      ){'\n'}
+                      print(<span className="s2">&quot;Status:&quot;</span>, res.status_code)
+                    </>
+                  ),
+                },
+                {
+                  label: 'cURL',
+                  code: tsCurl,
+                  render: (
+                    <>
+                      <span className="c"># Kirim sitekey dan siteurl</span>{'\n'}
+                      curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \{'\n'}
+                      {'  '}-H <span className="s2">&quot;Content-Type: application/json&quot;</span> \{'\n'}
+                      {'  '}-d <span className="s2">&apos;{`{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}`}</span>&apos;
+                    </>
+                  ),
+                },
+              ]}
+            />
 
-            <h2 id="gh">/api/health</h2>
+            {/* ENDPOINT 4 */}
+            <h2 id="gh">4. Cek Status Server (Health Check)</h2>
             <p>
               <span className="m">GET</span>
               <code>/api/health</code>
             </p>
             <p>
-              Mengecek statistik memori RAM, CPU, dan kesiapan antrean browser
-              pada instance backend.
+              Gunakan endpoint ini untuk memastikan koneksi antara Vercel dan
+              mesin backend Railway aktif sebelum memulai antrean otomatis.
             </p>
 
+            <CodeTabs
+              tabs={[
+                {
+                  label: 'cURL',
+                  code: healthCurl,
+                  render: (
+                    <>
+                      curl -X GET https://gerbang-turnstile.vercel.app/api/health
+                    </>
+                  ),
+                },
+              ]}
+            />
+
             <CopyableSnippet
-              headerLabel="respons · 200 OK"
+              headerLabel="contoh respons · 200 OK"
               code={healthResponse}
             >
-              {`{\n  `}<span className="k">&quot;status&quot;</span>: <span className="s2">&quot;healthy&quot;</span>,{`\n  `}<span className="k">&quot;memory&quot;</span>: {'{'} <span className="k">&quot;rss&quot;</span>: <span className="s2">&quot;128MB&quot;</span> {'}'},{`\n  `}<span className="k">&quot;uptime&quot;</span>: <span className="s2">3600</span>{`\n}`}
+              {`{\n  `}<span className="k">&quot;status&quot;</span>: <span className="s2">&quot;healthy&quot;</span>,{`\n  `}<span className="k">&quot;railwayConnected&quot;</span>: <span className="s2">true</span>,{`\n  `}<span className="k">&quot;backendStatus&quot;</span>: <span className="s2">200</span>{`\n}`}
             </CopyableSnippet>
 
-            <h2 id="er">Kode error</h2>
+            {/* REFERENSI */}
+            <h2 id="er">Kode Status &amp; Error</h2>
             <table className="tbl">
               <thead>
                 <tr>
-                  <th>Kode</th>
+                  <th>Kode HTTP</th>
                   <th>Arti</th>
-                  <th>Tindakan</th>
+                  <th>Solusi</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>200</code></td>
-                  <td>Berhasil</td>
-                  <td>Token valid siap digunakan pada form target</td>
+                  <td><code>200 OK</code></td>
+                  <td>Berhasil dipecahkan</td>
+                  <td>Gunakan nilai <code>token</code> untuk form login target</td>
                 </tr>
                 <tr>
-                  <td><code>400</code></td>
-                  <td>Parameter salah</td>
-                  <td>Periksa <code>sitekey</code> dan <code>siteurl</code></td>
+                  <td><code>400 Bad Request</code></td>
+                  <td>Parameter kurang</td>
+                  <td>Cek kembali URL target atau sitekey yang dikirim</td>
                 </tr>
                 <tr>
-                  <td><code>429</code></td>
-                  <td>Batas laju / Browser sibuk</td>
+                  <td><code>429 Too Many Requests</code></td>
+                  <td>Antrean sibuk</td>
                   <td>
-                    Slot browser sedang penuh (antre 1 proses Chrome) atau melebihi limit per IP
+                    Slot Chrome backend sedang dipakai request lain. Tunggu beberapa
+                    detik lalu coba kembali.
                   </td>
                 </tr>
                 <tr>
-                  <td><code>500 / 502</code></td>
-                  <td>Solver timeout / Backend error</td>
+                  <td><code>500 / 502 Error</code></td>
+                  <td>Batas waktu habis (Timeout)</td>
                   <td>
-                    Tantangan Cloudflare gagal diselesaikan sebelum batas timeout
+                    Widget Turnstile tidak merespons dalam batas detik yang ditentukan.
+                    Coba naikkan parameter <code>timeout</code>.
                   </td>
                 </tr>
               </tbody>
             </table>
 
-            <h2 id="rl">Batas laju &amp; antrean</h2>
+            <h2 id="rl">Antrean &amp; Batas Kecepatan</h2>
             <p>
-              Secara bawaan di Railway, CaptchaX menerapkan antrean slot browser
-              global (hanya 1 proses Chrome dalam satu waktu) untuk menjaga
-              stabilitas RAM 1GB dan mencegah crash OOM.
+              Backend berjalan dengan sistem antrean pintar untuk memastikan
+              penggunaan memori RAM stabil. Setiap request browser diproses
+              bergantian agar server tidak kehabisan memori (*out of memory*).
             </p>
             <p>
-              Bila ada permintaan bersamaan, request berikutnya menunggu maksimal{' '}
-              <code>45 detik</code> hingga slot tersedia sebelum mengembalikan
-              status <code>Browser busy</code>.
+              Jika ada 2 request bersamaan, request kedua akan menunggu di antrean
+              hingga maksimal 45 detik. Jika antrean penuh, server akan menjawab
+              dengan pesan <code>Browser busy</code> agar script kamu bisa
+              melakukan jeda sebelum mencoba lagi.
             </p>
           </article>
         </div>
