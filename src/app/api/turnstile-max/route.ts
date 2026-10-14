@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getRailwayUrl } from '@/lib/railway';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const railwayUrl = process.env.RAILWAY_API_URL?.replace(/\/+$/, '');
+  const railwayUrl = getRailwayUrl();
 
   if (!railwayUrl) {
     return NextResponse.json(
