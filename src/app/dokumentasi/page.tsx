@@ -7,11 +7,11 @@ import ScrollReveal from '@/components/ScrollReveal';
 
 export default function DokumentasiPage() {
   const curlCode = `# selesaikan turnstile standalone
-curl -X POST https://YOUR_RAILWAY_URL/api/turnstile \\
+curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \\
   -H "Content-Type: application/json" \\
   -d '{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}'`;
 
-  const nodeCode = `const res = await fetch("https://YOUR_RAILWAY_URL/api/turnstile", {
+  const nodeCode = `const res = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -26,7 +26,7 @@ console.log(data.token);`;
   const pythonCode = `import requests
 
 res = requests.post(
-  "https://YOUR_RAILWAY_URL/api/turnstile",
+  "https://gerbang-turnstile.vercel.app/api/turnstile",
   json={
     "sitekey": "1x00000000000000000000AA",
     "siteurl": "https://challenges.cloudflare.com",
@@ -69,7 +69,7 @@ print(data.get("token"))`;
 </form>`;
 
   const nodeFullFlowCode = `// 1. Dapatkan token dari endpoint solver
-const solveRes = await fetch("https://YOUR_RAILWAY_URL/api/turnstile", {
+const solveRes = await fetch("https://gerbang-turnstile.vercel.app/api/turnstile", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -96,7 +96,7 @@ console.log("Status respons target:", targetRes.status);`;
 
 # 1. Panggil solver untuk memecahkan Turnstile
 solve = requests.post(
-  "https://YOUR_RAILWAY_URL/api/turnstile",
+  "https://gerbang-turnstile.vercel.app/api/turnstile",
   json={
     "sitekey": "0x4AAAAAA...",
     "siteurl": "https://target.com"
@@ -168,7 +168,7 @@ await page.evaluate((solvedToken) => {
                     <>
                       <span className="c"># selesaikan turnstile standalone</span>
                       <br />
-                      curl -X POST https://YOUR_RAILWAY_URL/api/turnstile \{'\n'}
+                      curl -X POST https://gerbang-turnstile.vercel.app/api/turnstile \{'\n'}
                       {'  '}-H <span className="s2">&quot;Content-Type: application/json&quot;</span> \{'\n'}
                       {'  '}-d <span className="s2">&apos;{`{"sitekey":"1x00000000000000000000AA","siteurl":"https://challenges.cloudflare.com","timeout":45}`}</span>&apos;
                     </>
@@ -179,7 +179,7 @@ await page.evaluate((solvedToken) => {
                   code: nodeCode,
                   render: (
                     <>
-                      <span className="k">const</span> res = <span className="k">await</span> fetch(<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      <span className="k">const</span> res = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
                       {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
                       {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
                       {'  '}body: JSON.stringify({'{'}{'\n'}
@@ -200,7 +200,7 @@ await page.evaluate((solvedToken) => {
                     <>
                       <span className="k">import</span> requests{'\n\n'}
                       res = requests.post({'\n'}
-                      {'  '}<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>,{'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
                       {'  '}json={'{'}{'\n'}
                       {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;1x00000000000000000000AA&quot;</span>,{'\n'}
                       {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://challenges.cloudflare.com&quot;</span>,{'\n'}
@@ -279,7 +279,7 @@ await page.evaluate((solvedToken) => {
                   render: (
                     <>
                       <span className="c">// 1. Dapatkan token dari endpoint solver</span>{'\n'}
-                      <span className="k">const</span> solveRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>, {'{'}{'\n'}
+                      <span className="k">const</span> solveRes = <span className="k">await</span> fetch(<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>, {'{'}{'\n'}
                       {'  '}method: <span className="s2">&quot;POST&quot;</span>,{'\n'}
                       {'  '}headers: {'{'} <span className="s2">&quot;Content-Type&quot;</span>: <span className="s2">&quot;application/json&quot;</span> {'}'},{'\n'}
                       {'  '}body: JSON.stringify({'{'}{'\n'}
@@ -310,7 +310,7 @@ await page.evaluate((solvedToken) => {
                       <span className="k">import</span> requests{'\n\n'}
                       <span className="c"># 1. Panggil solver untuk memecahkan Turnstile</span>{'\n'}
                       solve = requests.post({'\n'}
-                      {'  '}<span className="s2">&quot;https://YOUR_RAILWAY_URL/api/turnstile&quot;</span>,{'\n'}
+                      {'  '}<span className="s2">&quot;https://gerbang-turnstile.vercel.app/api/turnstile&quot;</span>,{'\n'}
                       {'  '}json={'{'}{'\n'}
                       {'    '}<span className="s2">&quot;sitekey&quot;</span>: <span className="s2">&quot;0x4AAAAAA...&quot;</span>,{'\n'}
                       {'    '}<span className="s2">&quot;siteurl&quot;</span>: <span className="s2">&quot;https://target.com&quot;</span>{'\n'}
