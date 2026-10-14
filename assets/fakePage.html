@@ -3,23 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Loadings...</title>
+    <title>Cloudflare Turnstile</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #fff; }
+        .turnstile { min-height: 65px; min-width: 300px; }
+    </style>
 </head>
 <body>
     <div class="turnstile"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>
     <script>
         window.onloadTurnstileCallback = function () {
-            turnstile.render('.turnstile', {
-                sitekey: '<site-key>',
-                callback: function (token) {
-                    var c = document.createElement('input');
-                    c.type = 'hidden';
-                    c.name = 'cf-response';
-                    c.value = token;
-                    document.body.appendChild(c);
-                },
-            });
+            try {
+                turnstile.render('.turnstile', {
+                    sitekey: '<site-key>',
+                    callback: function (token) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-response';
+                        c.value = token;
+                        document.body.appendChild(c);
+                    },
+                    'error-callback': function (code) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-error';
+                        c.value = code || 'turnstile_error';
+                        document.body.appendChild(c);
+                    }
+                });
+            } catch (err) {
+                var c = document.createElement('input');
+                c.type = 'hidden';
+                c.name = 'cf-error';
+                c.value = err.message || 'render_exception';
+                document.body.appendChild(c);
+            }
         };
     </script>
 </body>

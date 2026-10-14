@@ -29,23 +29,42 @@ class BypassService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <title>Cloudflare Turnstile</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #fff; }
+        .turnstile { min-height: 65px; min-width: 300px; }
+    </style>
 </head>
 <body>
     <div class="turnstile"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>
     <script>
         window.onloadTurnstileCallback = function () {
-            turnstile.render('.turnstile', {
-                sitekey: '<site-key>',
-                callback: function (token) {
-                    var c = document.createElement('input');
-                    c.type = 'hidden';
-                    c.name = 'cf-response';
-                    c.value = token;
-                    document.body.appendChild(c);
-                },
-            });
+            try {
+                turnstile.render('.turnstile', {
+                    sitekey: '<site-key>',
+                    callback: function (token) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-response';
+                        c.value = token;
+                        document.body.appendChild(c);
+                    },
+                    'error-callback': function (code) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-error';
+                        c.value = code || 'turnstile_error';
+                        document.body.appendChild(c);
+                    }
+                });
+            } catch (err) {
+                var c = document.createElement('input');
+                c.type = 'hidden';
+                c.name = 'cf-error';
+                c.value = err.message || 'render_exception';
+                document.body.appendChild(c);
+            }
         };
     </script>
 </body>
@@ -60,23 +79,42 @@ class BypassService {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <title>Cloudflare Turnstile</title>
+    <style>
+        body { margin: 0; padding: 20px; background: #fff; }
+        .turnstile { min-height: 65px; min-width: 300px; }
+    </style>
 </head>
 <body>
     <div class="turnstile"></div>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer></script>
     <script>
         window.onloadTurnstileCallback = function () {
-            turnstile.render('.turnstile', {
-                sitekey: '<site-key>',
-                callback: function (token) {
-                    var c = document.createElement('input');
-                    c.type = 'hidden';
-                    c.name = 'cf-response';
-                    c.value = token;
-                    document.body.appendChild(c);
-                },
-            });
+            try {
+                turnstile.render('.turnstile', {
+                    sitekey: '<site-key>',
+                    callback: function (token) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-response';
+                        c.value = token;
+                        document.body.appendChild(c);
+                    },
+                    'error-callback': function (code) {
+                        var c = document.createElement('input');
+                        c.type = 'hidden';
+                        c.name = 'cf-error';
+                        c.value = code || 'turnstile_error';
+                        document.body.appendChild(c);
+                    }
+                });
+            } catch (err) {
+                var c = document.createElement('input');
+                c.type = 'hidden';
+                c.name = 'cf-error';
+                c.value = err.message || 'render_exception';
+                document.body.appendChild(c);
+            }
         };
     </script>
 </body>
@@ -169,6 +207,97 @@ class BypassService {
     }
   }
 
+  async waitForTurnstileToken(page, timeoutMs = 60000) {
+    const deadline = Date.now() + timeoutMs;
+    let ticks = 0;
+
+    while (Date.now() < deadline) {
+      // 1. Check if token or error is present in DOM
+      const result = await page
+        .evaluate(() => {
+          try {
+            const resp = document.querySelector('[name="cf-response"]');
+            if (resp && resp.value && resp.value.length > 10) {
+              return { type: "token", value: resp.value };
+            }
+            const err = document.querySelector('[name="cf-error"]');
+            if (err && err.value) {
+              return { type: "error", value: err.value };
+            }
+            if (window.turnstile && typeof window.turnstile.getResponse === "function") {
+              const t = window.turnstile.getResponse();
+              if (t && t.length > 10) return { type: "token", value: t };
+            }
+          } catch (e) {}
+          return null;
+        })
+        .catch(() => null);
+
+      if (result) {
+        if (result.type === "token") {
+          return result.value;
+        }
+        if (result.type === "error") {
+          throw new Error(`Turnstile failed: ${result.value}`);
+        }
+      }
+
+      // 2. Try clicking interactive checkbox if presented
+      ticks++;
+      if (ticks >= 2) {
+        try {
+          const frames = page.frames();
+          const cfFrame = frames.find((f) => {
+            try {
+              return f.url().includes("challenges.cloudflare.com");
+            } catch (e) {
+              return false;
+            }
+          });
+
+          if (cfFrame) {
+            const cb = await cfFrame.$('input[type="checkbox"]').catch(() => null);
+            if (cb) {
+              const box = await cb.boundingBox().catch(() => null);
+              if (box) {
+                await cb.click().catch(() => {});
+              }
+            } else {
+              const el = await cfFrame
+                .$('label, #challenge-stage, .ctp-checkbox-label, body')
+                .catch(() => null);
+              if (el) {
+                const box = await el.boundingBox().catch(() => null);
+                if (box && box.width > 0) {
+                  await el.click().catch(() => {});
+                }
+              }
+            }
+          }
+
+          // Fallback: click bounding box of the iframe directly on main page
+          const iframeEl = await page
+            .$('iframe[src*="challenges.cloudflare.com"]')
+            .catch(() => null);
+          if (iframeEl) {
+            const box = await iframeEl.boundingBox().catch(() => null);
+            if (box && box.width > 0 && box.height > 0) {
+              const clickX = box.x + Math.min(28, Math.floor(box.width / 2));
+              const clickY = box.y + Math.floor(box.height / 2);
+              await page.mouse.click(clickX, clickY).catch(() => {});
+            }
+          }
+        } catch (e) {
+          // ignore click errors during loop
+        }
+      }
+
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    throw new Error(`Timeout waiting for turnstile token (${timeoutMs}ms exceeded)`);
+  }
+
   async solveTurnstileMin(url, siteKey, proxy, timeout = 60000, opts = {}) {
     const startTime = Date.now();
     try {
@@ -215,17 +344,7 @@ class BypassService {
           waitUntil: "domcontentloaded",
         });
 
-        await page.waitForSelector('[name="cf-response"]', {
-          timeout: timeout,
-        });
-
-        return page.evaluate(() => {
-          try {
-            return document.querySelector('[name="cf-response"]')?.value;
-          } catch (e) {
-            return null;
-          }
-        });
+        return await this.waitForTurnstileToken(page, timeout);
       });
 
       if (!token || token.length < 10) {
@@ -288,15 +407,7 @@ class BypassService {
           timeout: 30000,
         });
 
-        await page.waitForSelector('[name="cf-response"]', { timeout });
-
-        return page.evaluate(() => {
-          try {
-            return document.querySelector('[name="cf-response"]')?.value;
-          } catch (e) {
-            return null;
-          }
-        });
+        return await this.waitForTurnstileToken(page, timeout);
       });
 
       if (!token || token.length < 10) {
