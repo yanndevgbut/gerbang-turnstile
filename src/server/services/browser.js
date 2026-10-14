@@ -1,9 +1,45 @@
 const { connect } = require('puppeteer-real-browser');
 const os = require('os');
 
+function parseProxy(proxyInput) {
+  if (!proxyInput) return null;
+  if (typeof proxyInput === 'string') {
+    try {
+      const u = new URL(proxyInput);
+      return {
+        serverUrl: `${u.protocol}//${u.hostname}${u.port ? ':' + u.port : ''}`,
+        username: u.username ? decodeURIComponent(u.username) : null,
+        password: u.password ? decodeURIComponent(u.password) : null,
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+  if (typeof proxyInput === 'object') {
+    let raw = proxyInput.server || proxyInput.url;
+    if (!raw && proxyInput.host && proxyInput.port) {
+      raw = `http://${proxyInput.host}:${proxyInput.port}`;
+    }
+    if (raw) {
+      try {
+        const u = new URL(raw.includes('://') ? raw : `http://${raw}`);
+        return {
+          serverUrl: `${u.protocol}//${u.hostname}${u.port ? ':' + u.port : ''}`,
+          username: proxyInput.username || (u.username ? decodeURIComponent(u.username) : null),
+          password: proxyInput.password || (u.password ? decodeURIComponent(u.password) : null),
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
 class BrowserService {
   constructor() {
     this.browser = null;
+    this.activeProxy = null;
     this.browserContexts = new Set();
     this.cleanupTimer = null;
     this.isShuttingDown = false;
@@ -42,6 +78,27 @@ class BrowserService {
       const width = options.width || defaultWidth;
       const height = options.height || defaultHeight;
 
+      const parsedProxy = parseProxy(options.proxy);
+      this.activeProxy = parsedProxy;
+
+      const args = [
+        `--window-size=${width},${height}`,
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--ignore-gpu-blocklist',
+        '--enable-webgl',
+        '--no-first-run',
+        '--disable-quic',
+        '--disable-blink-features=AutomationControlled',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+      ];
+
+      if (parsedProxy?.serverUrl) {
+        args.push(`--proxy-server=${parsedProxy.serverUrl}`);
+        console.log(`[Browser] Proxy enabled: ${parsedProxy.serverUrl}`);
+      }
+
       const { browser } = await connect({
         headless: false,
         turnstile: true,
@@ -49,18 +106,7 @@ class BrowserService {
           defaultViewport: { width, height },
           timeout: 45000,
           protocolTimeout: 120000,
-          args: [
-            `--window-size=${width},${height}`,
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--ignore-gpu-blocklist',
-            '--enable-webgl',
-            '--no-first-run',
-            '--disable-quic',
-            '--disable-blink-features=AutomationControlled',
-            '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-          ],
+          args,
         },
         disableXvfb: false,
       });
@@ -262,6 +308,19 @@ class BrowserService {
     let context = null;
     try {
       context = await this.createContext();
+      if (this.activeProxy?.username && this.activeProxy?.password) {
+        const origNewPage = context.newPage.bind(context);
+        context.newPage = async () => {
+          const page = await origNewPage();
+          try {
+            await page.authenticate({
+              username: this.activeProxy.username,
+              password: this.activeProxy.password,
+            });
+          } catch (e) {}
+          return page;
+        };
+      }
       return await callback(context);
     } finally {
       if (context) {
@@ -331,4 +390,4 @@ class BrowserService {
   }
 }
 
-module.exports = { BrowserService };
+module.exports = { BrowserService, parseProxy };

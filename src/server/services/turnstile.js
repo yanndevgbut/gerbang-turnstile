@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { BrowserService } = require("./browser");
+const { BrowserService, parseProxy } = require("./browser");
 
 class BypassService {
   constructor(browserService) {
@@ -134,11 +134,14 @@ class BypassService {
         await page.setDefaultTimeout(30000);
         await page.setDefaultNavigationTimeout(30000);
 
-        if (proxy?.username && proxy?.password) {
-          await page.authenticate({
-            username: proxy.username,
-            password: proxy.password,
-          });
+        const parsedProxy = parseProxy(proxy);
+        if (parsedProxy?.username && parsedProxy?.password) {
+          try {
+            await page.authenticate({
+              username: parsedProxy.username,
+              password: parsedProxy.password,
+            });
+          } catch (e) {}
         }
 
         const acceptLanguage = await this.findAcceptLanguage(page);
@@ -327,11 +330,14 @@ class BypassService {
           Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
         });
 
-        if (proxy?.username && proxy?.password) {
-          await page.authenticate({
-            username: proxy.username,
-            password: proxy.password,
-          });
+        const parsedProxy = parseProxy(proxy);
+        if (parsedProxy?.username && parsedProxy?.password) {
+          try {
+            await page.authenticate({
+              username: parsedProxy.username,
+              password: parsedProxy.password,
+            });
+          } catch (e) {}
         }
 
         await page.setRequestInterception(true);
@@ -393,11 +399,14 @@ class BypassService {
           Object.defineProperty(navigator, 'vendor', { get: () => 'Google Inc.' });
         });
 
-        if (proxy?.username && proxy?.password) {
-          await page.authenticate({
-            username: proxy.username,
-            password: proxy.password,
-          });
+        const parsedProxy = parseProxy(proxy);
+        if (parsedProxy?.username && parsedProxy?.password) {
+          try {
+            await page.authenticate({
+              username: parsedProxy.username,
+              password: parsedProxy.password,
+            });
+          } catch (e) {}
         }
 
         await page.evaluateOnNewDocument(() => {
@@ -456,11 +465,14 @@ class BypassService {
         await page.setDefaultTimeout(30000);
         await page.setDefaultNavigationTimeout(30000);
 
-        if (proxy?.username && proxy?.password) {
-          await page.authenticate({
-            username: proxy.username,
-            password: proxy.password,
-          });
+        const parsedProxy = parseProxy(proxy);
+        if (parsedProxy?.username && parsedProxy?.password) {
+          try {
+            await page.authenticate({
+              username: parsedProxy.username,
+              password: parsedProxy.password,
+            });
+          } catch (e) {}
         }
 
         await page.setRequestInterception(true);

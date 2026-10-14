@@ -88,7 +88,7 @@ router.post('/turnstile', async (req, res) => {
     
     browserService = new BrowserService();
     const bypassService = new BypassService(browserService);
-    await browserService.initialize();
+    await browserService.initialize({ proxy });
     
     const result = await bypassService.solveTurnstileMin(siteurl, sitekey, proxy || null, solveTimeout * 1000, { action });
     
@@ -291,7 +291,7 @@ router.post('/turnstile-max', async (req, res) => {
 
     browserService = new BrowserService();
     const bypassService = new BypassService(browserService);
-    await browserService.initialize();
+    await browserService.initialize({ proxy });
 
     const result = await bypassService.solveTurnstileMax(url, proxy || null, solveTimeout * 1000);
 
@@ -414,7 +414,7 @@ router.post('/waf-session', async (req, res) => {
 
     browserService = new BrowserService();
     const bypassService = new BypassService(browserService);
-    await browserService.initialize();
+    await browserService.initialize({ proxy });
 
     const result = await bypassService.wafSession(url, proxy || null, solveTimeout * 1000);
 
@@ -464,7 +464,7 @@ router.post('/source', async (req, res) => {
 
     browserService = new BrowserService();
     const bypassService = new BypassService(browserService);
-    await browserService.initialize();
+    await browserService.initialize({ proxy });
 
     const result = await bypassService.getSource(url, proxy || null, solveTimeout * 1000);
 
